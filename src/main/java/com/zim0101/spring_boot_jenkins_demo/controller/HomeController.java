@@ -15,6 +15,7 @@ public class HomeController {
         Map<String, String> response = new HashMap<>();
 
         response.put("status", "success");
+        response.put("code", "200");
         response.put("message", "Welcome to Spring Boot with Jenkins Application!");
 
         return ResponseEntity.ok(response);
