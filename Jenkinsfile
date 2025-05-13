@@ -42,7 +42,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -f Dockerfile -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} .'
+                sh 'docker build -f Dockerfile.prod -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} .'
             }
         }
 
@@ -58,22 +58,20 @@ pipeline {
         stage('Deploy to VM') {
             steps {
                 script {
-                    // Create .env file for docker-compose
-                    writeFile file: '.env', text: """
-                    DOCKER_USERNAME=${DOCKER_USERNAME}
-                    IMAGE_NAME=${IMAGE_NAME}
-                    IMAGE_TAG=${IMAGE_TAG}
-                    """
+                    // Create properly formatted .env file
+                    writeFile file: '.env', text: """DOCKER_USERNAME=${DOCKER_USERNAME}
+        IMAGE_NAME=${IMAGE_NAME}
+        IMAGE_TAG=${IMAGE_TAG}"""
 
                     // Transfer files to the server
                     sh 'scp -i ${SSH_KEY} -o StrictHostKeyChecking=no docker-compose.prod.yml ${SSH_USER}@${SERVER_IP}:/root/'
                     sh 'scp -i ${SSH_KEY} -o StrictHostKeyChecking=no .env ${SSH_USER}@${SERVER_IP}:/root/.env'
 
-                    // SSH into the VM and deploy
-                    sh '''
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} << 'EOF'
+                    // SSH into the VM and deploy with environment variables
+                    sh """
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} << EOF
                         # Login to Docker Hub
-                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
                         # Pull the image
                         docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -86,7 +84,7 @@ pipeline {
                         # Verify deployment
                         docker ps | grep spring-boot-app
                         EOF
-                    '''
+                    """
                 }
             }
         }
