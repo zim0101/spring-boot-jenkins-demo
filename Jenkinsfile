@@ -78,8 +78,8 @@ pipeline {
                             echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
                             docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
                             cd /root
-                            docker-compose -f docker-compose.prod.yml down || true
-                            docker-compose -f docker-compose.prod.yml up -d
+                            docker compose -f docker-compose.prod.yml down || true
+                            docker compose -f docker-compose.prod.yml up -d
                             docker ps | grep spring-boot-app
                         "
                     '''
