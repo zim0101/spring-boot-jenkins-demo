@@ -16,6 +16,7 @@ public class HomeController {
 
         response.put("status", "success");
         response.put("code", "200");
+        response.put("version", "v1");
         response.put("message", "Welcome to Spring Boot with Jenkins Application!");
 
         return ResponseEntity.ok(response);
