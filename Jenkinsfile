@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'jenkins/inbound-agent:jdk17'
+            image 'zim0101/jenkins-maven-17-agent:latest'
             args '-v $HOME/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
