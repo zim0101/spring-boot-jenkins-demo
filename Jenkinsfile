@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'jenkins/inbound-agent:jdk17-windowsservercore-ltsc2019'
+            image 'jenkins/inbound-agent:jdk17'
             args '-v $HOME/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
