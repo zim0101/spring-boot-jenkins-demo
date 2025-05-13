@@ -57,34 +57,32 @@ pipeline {
 
         stage('Deploy to VM') {
             steps {
-                script {
-                    // Create properly formatted .env file
-                    writeFile file: '.env', text: """DOCKER_USERNAME=${DOCKER_USERNAME}
-        IMAGE_NAME=${IMAGE_NAME}
-        IMAGE_TAG=${IMAGE_TAG}"""
-
-                    // Transfer files to the server
-                    sh 'scp -i ${SSH_KEY} -o StrictHostKeyChecking=no docker-compose.prod.yml ${SSH_USER}@${SERVER_IP}:/root/'
-                    sh 'scp -i ${SSH_KEY} -o StrictHostKeyChecking=no .env ${SSH_USER}@${SERVER_IP}:/root/.env'
-
-                    // SSH into the VM and deploy with environment variables
-                    sh """
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} << EOF
-                        # Login to Docker Hub
-                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-
-                        # Pull the image
-                        docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
-
-                        # Deploy using docker-compose
-                        cd /root
-                        docker-compose -f docker-compose.prod.yml down || true
-                        docker-compose -f docker-compose.prod.yml up -d
-
-                        # Verify deployment
-                        docker ps | grep spring-boot-app
-                        EOF
-                    """
+                sshagent(['ssh-key']) {
+                    // Create the .env file content
+                    sh '''
+                        echo "DOCKER_USERNAME=${DOCKER_USERNAME}" > .env
+                        echo "IMAGE_NAME=${IMAGE_NAME}" >> .env
+                        echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
+                    '''
+                    
+                    // Use SSH to create directory if it doesn't exist
+                    sh 'ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} "mkdir -p /root"'
+                    
+                    // Copy files to remote server
+                    sh 'scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${SSH_USER}@${SERVER_IP}:/root/'
+                    sh 'scp -o StrictHostKeyChecking=no .env ${SSH_USER}@${SERVER_IP}:/root/'
+                    
+                    // Execute deployment commands on remote server
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} "
+                            echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                            docker pull ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+                            cd /root
+                            docker-compose -f docker-compose.prod.yml down || true
+                            docker-compose -f docker-compose.prod.yml up -d
+                            docker ps | grep spring-boot-app
+                        "
+                    '''
                 }
             }
         }
